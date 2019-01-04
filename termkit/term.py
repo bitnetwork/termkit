@@ -1,5 +1,6 @@
 from collections import namedtuple
-import importlib 
+import functools
+import importlib
 import os
 import sys
 
@@ -61,6 +62,21 @@ class Term:
 
   def insert_line(self, row):
     self.stdout.write(self.capabilities.INSERT_LINE.format(row=row))
+
+  def key_handler(self, func=None, *, keys=None):
+    # Decorator function
+    # Use an asterisk to lock the left-side args in place
+    if func is None:
+      # The function was called in the decorator so we need to return a copy of ourself as a wrapper
+      # @key_handler(keys=[...]) or @key_handler()
+      return functools.partial(key_handler, keys=keys)
+
+    # The function directly pass in the decorator and this handler is acting like the wrapper
+    # @key_handler
+
+    # Do logic with keys
+    # event_array.append(func)
+    return func
 
   def move(self, position, relative=False):
     if relative:
