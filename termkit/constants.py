@@ -1,33 +1,36 @@
-"""Constant terminal module for xterm-256color"""
+"""Terminal constants and escape sequences"""
 
-# Consider using namedtuple for existing tuples
-# ex: Feature = namedtuple("Feature", ("enter", "exit"))
-#              or with better wording ("enable", "disable"))
-# or: Key = namedtuple("Key", ("stock", "shift", "ctrl", "ctrl-shift", "meta", "meta-shift", "meta-ctrl", "meta-ctrl-shift"))
-# and for COLORMAP: Color = namedtuple("Color", ("red", "green", "blue"))
+from collections import namedtuple
 
-DESCRIPTION = "X11 terminal emulator with 256 colors"
+Feature = namedtuple("Feature", ["set", "reset"])
+Feature.__doc__ = """"""
+Key = namedtuple("Key", ["key", "value", "shift", "meta", "ctrl"], defaults=(False,) * 3)
+Key.__doc__ = """"""
 
 COLUMNS = 80
 LINES = 24
 UNICODE = False
 
 BELL = "\b"
-CLEAR = "\x1b[H\x1b[2J"
-CLEAR_LINE = "\x1b[G\x1b[2K"
+CLEAR = "\x1b[H\x1b[2J"  # Move the cursor to home (0, 0) then clear the screen
+CLEAR_LINE = "\x1b[G\x1b[2K"  # Move the cursor to column 1 then clear the line
 INSERT_LINE = "\x1b[{row}L"
 DELETE_LINE = "\x1b[{row}M"
-RESET = "\x1bc\x1b[!p\x1b[?3;4l\x1b[4l\x1b>\x1b[m\x1b]104\x1b\\\x1b[1 q\x1b]112"
-# (enter_feature, exit_feature)
-ALTERNATE_BUFFER = ("\x1b[?1049h", "\x1b[?1049l")
-KEYPAD = ("\x1b[?1h\x1b=", "\x1b[?1l\x1b>")
-STATUS = ("\x1b]0;", "\u0007")
-ALTERNATE_CHARSET = ("\x1b(0", "\x1b(B")
-PASTE = ("\x1b[?1049h", "\x1b[?1049l")
-KEY_PASTE = ("\x1b[200~", "\x1b[201~")
-# (set_feature, reset_feature)
-SCROLL_REGION = ("\x1b[{first};{second}r", "\x1b[r")
-ALTERNATE_CHARSET = {
+RESET = (
+  "\x1bc"  # Full reset
+  "\x1b[!p"  # Soft terminal reset
+  "\x1b[?3;4l"  # 80 column mode, jump scroll
+  "\x1b[4l"
+  "\x1b>"  # Normal keypad
+  "\x1b[m"  # Reset all style attributes
+  "\x1b(B"  # Set charset #0 as ASCII
+  "\x1b)0"  # Set charset #1 as Speical Character and Line Drawing
+  "\x0f"  # (^O) Switch to charset #0
+  "\x1b]104\x1b\\"  # Reset color pallate
+  "\x1b[1 q"  # Reset cursor style
+  "\x1b]112"  # Reset cursor color
+)
+CHARSET_TABLE = {
   "j": u"\u2518",
   "k": u"\u2510",
   "l": u"\u250c",
@@ -41,7 +44,15 @@ ALTERNATE_CHARSET = {
   "x": u"\u2502"
 }
 
-# Transforming these capabilities into tuples may confuse some
+# (set_feature, reset_feature)
+BUFFER = Feature("\x1b[?1049h", "\x1b[?1049l")
+KEYPAD = Feature("\x1b[?1h\x1b=", "\x1b[?1l\x1b>")
+STATUS = Feature("\x1b]0;{text}\x1b\\", "")  # There is no way to reset the status line
+CHARSET = Feature("\x1b(0\x0f", "\x1b(B\x0f")  # Set the charset and thenswitch to it
+PASTE = Feature("\x1b[?2004h", "\x1b[?2004l")
+KEY_PASTE = Feature("\x1b[200~", "\x1b[201~")
+SCROLL_REGION = Feature("\x1b[{first};{second}r", "\x1b[r")
+
 MOVE_CURSOR = "\x1b[{row};{column}H"
 MOVE_COLUMN = "\x1b[{column}G"
 MOVE_ROW = "\x1b[{row}d"
@@ -56,11 +67,12 @@ RESTORE_CURSOR = "\x1b8"
 REQUEST_CURSOR = "\x1b[6n"
 REPORT_CURSOR = "\x1b[{row};{column}R"
 
-CURSOR_VISIBILITY = ("\x1b[?25h", "\x1b[?25l")
-CURSOR_STYLE = "\x1b[{style} q"
-CURSOR_COLOR = ("\x1b]12;#{red:x}{green:x}{blue:x}\x07", "\x1b]112")
+# (set_feature, reset_feature)
+CURSOR_VISIBILITY = Feature("\x1b[?25h", "\x1b[?25l")
+CURSOR_STYLE = Feature("\x1b[{style} q", "\x1b[ q")
+CURSOR_COLOR = Feature("\x1b]12;rgb:{red:X}/{green:X}/{blue:X}\x1b\\", "\x1b]112\x1b\\")
 
-# (enter_feature, exit_feature)
+# (set_feature, reset_feature)
 BOLD = ("\x1b[1m", "\x1b[22m")
 DIM = ("\x1b[2m", "\x1b[22m")
 REVERSE = ("\x1b[7m", "\x1b[27m")
@@ -68,31 +80,28 @@ UNDERLINE = ("\x1b[4m", "\x1b[24m")
 ITALIC = ("\x1b[3m", "\x1b[23m")
 CONCEAL = ("\x1b[8m", "\x1b[28m")
 BLINK = ("\x1b[5m", "\x1b[25m")
-STRIKETHROUGH = ("\x1b[9m", "\x1b[29m")
+STRIKE = ("\x1b[9m", "\x1b[29m")
 RESET_STYLE = "\x1b(B\x1b[m"
 
 COLORS = 256
-TRUECOLOR = True
-# (reset_color, 8_color, 16_color, 256_color, truecolor)
+TRUECOLOR = False
 # Note that 16_color takes the id starting at 0 unlike 8_color (subtract 8 from id)
-SET_FOREGROUND = (
-  "\x1b[39m",
-  "\x1b[3{color}m",
-  "\x1b[9{color}m",
-  "\x1b[38;5;{color}m",
-  "\x1b[38;2;{red};{blue};{green}m"
-)
-SET_BACKGROUND = (
-  "\x1b[49m",
-  "\x1b[4{color}m",
-  "\x1b[10{color}m",
-  "\x1b[48;5;{color}m",
-  "\x1b[48;2;{red};{blue};{green}m"
-)
-COLOR_PAIR = ("\x1b]4;{color};rgb:{red:X}/{green:X}/{blue:X}\x1b\\", "\x1b]104\x1b\\")
+FGCOLOR_8 = "\x1b[3{color}m"  # color = 0-7
+FGCOLOR_16 = "\x1b[9{color}m"  # color = 0-7 (real values of 8-15)
+FGCOLOR_256 = "\x1b[38;5;{color}m"  # color = 0-255
+FGCOLOR_TRUE = "\x1b[38;2;{red};{blue};{green}m"  # red, blue, green = 0-255
+RESET_FGCOLOR = "\x1b[39m"
+
+BGCOLOR_8 = "\x1b[4{color}m"  # color = 0-7
+BGCOLOR_16 = "\x1b[10{color}m"  # color = 0-7 (real values 8-15)
+BGCOLOR_256 = "\x1b[48;5;{color}m"  # color = 0-255
+BGCOLOR_TRUE = "\x1b[48;2;{red};{blue};{green}m"  # red, blue, green = 0-255
+RESET_BGCOLOR = "\x1b[49m"
+
+COLOR_PAIR = ("\x1b]4;{color};rgb:{red:x}/{green:x}/{blue:x}\x1b\\", "\x1b]104\x1b\\")
 # number = 16 + 36 * r + 6 * g + b
 # https://stackoverflow.com/questions/27159322/rgb-values-of-the-colors-in-the-ansi-extended-colors-index-17-255
-COLORMAP = (
+COLOR_MAP = [
   # (red, green, blue)
   (0, 0, 0), # 0 black
   (128, 0, 0), # 1 maroon
@@ -349,281 +358,152 @@ COLORMAP = (
   (208, 208, 208), # 252 grey82
   (218, 218, 218), # 253 grey85
   (228, 228, 228), # 254 grey89
-  (238, 238, 238) # 255 grey93
-)
+  (238, 238, 238), # 255 grey93
+]
 
-# (click_mouse, drag_mouse, move_mouse, exit_mouse)
-MOUSE = (
-  "\x1b[?1000;1006h",
-  "\x1b[?1002;1006h",
-  "\x1b[?1003;1006h",
-  "\x1b[?1000;1002;1003;1006l"
-)
-# (pressed, released)
-KEY_MOUSE = (
-  "\x1b[<{button};{row};{columns}m",
-  "\x1b[<{button};{row};{columns}M"
-)
+CLICK_MOUSE = "\x1b[?1000;1006h"
+DRAG_MOUSE = "\x1b[?1002;1006h"
+MOVE_MOUSE = "\x1b[?1003;1006h"
+RESET_MOUSE = "\x1b[?1000;1002;1003;1006l"
 
-# (no mod, shift, ctrl, ctrl-shift, meta, meta-shift, meta-ctrl, meta-ctrl-shift)
-# nested tuple indicates mutiple keycodes
-KEY_UP = (
-  ("\x1b[A", "\x1bOA"),
-  "\x1b[1;2A",
-  "\x1b[1;5A",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_DOWN = (
-  ("\x1b[B", "\x1bOB"),
-  "\x1b[1;2B",
-  "\x1b[1;5B",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_RIGHT = (
-  ("\x1b[C", "\x1bOC"),
-  "\x1b[1;2C",
-  "\x1b[1;5C",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_LEFT = (
-  ("\x1b[D", "\x1bOD"),
-  "\x1b[1;2D",
-  "\x1b[1;5D",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_RETURN = (
-  "\r",
-  None,
-  "\n",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_BACKSPACE = (
-  "\u007f",
-  None,
-  "\b",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_DELETE = (
-  "\x1b[3~",
-  None,
-  "\x1b[3;5~",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_TAB = (
-  "\t",
-  "\x1b[Z",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_ESCAPE = (
-  "\x1b",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_INSERT = (
-  "\x1b[2~",
-  None,
-  "\x1b[2;5~",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_HOME = (
-  ("\x1b[H", "\x1bOH"),
-  None,
-  "\x1b[1;5H",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_END = (
-  ("\x1b[F", "\x1bOF"),
-  None,
-  "\x1b[1;5F",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_PAGE_LAST = (
-  "\x1b[5~",
-  None,
-  "\x1b[5;5~",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_PAGE_NEXT = (
-  "\x1b[6~",
-  None,
-  "\x1b[6;5~",
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F1 = (
-  "\x1bOP",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F2 = (
-  "\x1bOQ",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F3 = (
-  "\x1bOR",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F4 = (
-  "\x1bOS",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F5 = (
-  "\x1b[15~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F6 = (
-  "\x1b[17~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F7 = (
-  "\x1b[18~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F8 = (
-  "\x1b[19~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F9 = (
-  "\x1b[20~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F10 = (
-  "\x1b[21~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F11 = (
-  "\x1b[23~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
-KEY_F12 = (
-  "\x1b[24~",
-  None,
-  None,
-  None,
-  None,
-  None,
-  None,
-  None
-)
+KEY_MOUSE_PRESS = "\x1b[<{button};{row};{columns}m"
+KEY_MOUSE_RELEASE = "\x1b[<{button};{row};{columns}M"
+
+# xterm sends an escape sequence followed by a bitmask of modifiers pressed
+# \x1b[...;B... where B is a 1 + a bitmask of (LSB shift, meta, ctrl MSB)
+# otherwise if there is a lowercase letter, shift will capitalize it and meta will prepend \x1b to it
+
+KEY_UP = [
+  Key("up", "\x1b[A"),
+  Key("up", "\x1bOA"),
+  Key("up", "\x1b[1;2A", shift=True),
+  Key("up", "\x1b[1;3A", meta=True),
+  Key("up", "\x1b[1;5A", ctrl=True),
+  Key("up", "\x1b[1;4A", shift=True, meta=True),
+  Key("up", "\x1b[1;6A", shift=True, ctrl=True),
+  Key("up", "\x1b[1;7A", meta=True, ctrl=True),
+  Key("up", "\x1b[1;8A", shift=True, meta=True, ctrl=True),
+]
+KEY_DOWN = [
+  Key("down", "\x1b[B"),
+  Key("down", "\x1bOB"),
+  Key("down", "\x1b[1;2B", shift=True),
+  Key("down", "\x1b[1;3B", meta=True),
+  Key("down", "\x1b[1;5B", ctrl=True),
+  Key("down", "\x1b[1;4B", shift=True, meta=True),
+  Key("down", "\x1b[1;6B", shift=True, ctrl=True),
+  Key("down", "\x1b[1;7B", meta=True, ctrl=True),
+  Key("down", "\x1b[1;8B", shift=True, meta=True, ctrl=True),
+]
+KEY_RIGHT = [
+  Key("right", "\x1b[C"),
+  Key("right", "\x1bOC"),
+  Key("right", "\x1b[1;2C", shift=True),
+  Key("right", "\x1b[1;3C", meta=True),
+  Key("right", "\x1b[1;5C", ctrl=True),
+  Key("right", "\x1b[1;4C", shift=True, meta=True),
+  Key("right", "\x1b[1;6C", shift=True, ctrl=True),
+  Key("right", "\x1b[1;7C", meta=True, ctrl=True),
+  Key("right", "\x1b[1;8C", shift=True, meta=True, ctrl=True),
+]
+KEY_LEFT = [
+  Key("left", "\x1b[D"),
+  Key("left", "\x1bOD"),
+  Key("left", "\x1b[1;2D", shift=True),
+  Key("left", "\x1b[1;3D", meta=True),
+  Key("left", "\x1b[1;5D", ctrl=True),
+  Key("left", "\x1b[1;4D", shift=True, meta=True),
+  Key("left", "\x1b[1;6D", shift=True, ctrl=True),
+  Key("left", "\x1b[1;7D", meta=True, ctrl=True),
+  Key("left", "\x1b[1;8D", shift=True, meta=True, ctrl=True),
+]
+
+KEY_RETURN = [
+  Key("return", "\r"),
+  Key("return", "\x1b\r", meta=True),  # rxvt & kde
+  Key("return", "\n", ctrl=True),  # unknown
+]
+KEY_BACKSPACE = [
+  Key("backspace", "\x7f"),
+  Key("backspace", "\x1b\x7f", meta=True),
+  Key("backspace", "\b", ctrl=True),
+  Key("backspace", "\x1b\x1b", meta=True, ctrl=True),
+]
+KEY_DELETE = [
+  Key("delete", "\x1b[3~"),
+  Key("delete", "\x1b[3;2~", shift=True),
+  Key("delete", "\x1b[3;3~", meta=True),
+  Key("delete", "\x1b[3;5~", ctrl=True),
+  Key("delete", "\x1b[3;4~", shift=True, meta=True),
+  Key("delete", "\x1b[3;6~", shift=True, ctrl=True),
+  Key("delete", "\x1b[3;7~", meta=True, ctrl=True),
+  Key("delete", "\x1b[3;8~", shift=True, meta=True, ctrl=True),
+]
+KEY_TAB = [
+  Key("tab", "\t"),
+  Key("tab", "\x1b[Z", shift=True),
+  Key("tab", "\x1b\t", meta=True),  # cannot properly test, assumed
+  Key("tab", "\x1b\x1b[Z", shift=True, meta=True),  # cannot properly test, assumed
+]
+KEY_ESCAPE = [
+  Key("escape", "\x1b"),
+]
+KEY_INSERT = [
+  Key("insert", "\x1b[2~"),
+  Key("insert", "\x1b[2;5~", ctrl=True),
+]
+KEY_HOME = [
+  Key("home", "\x1b[H"),
+  Key("home", "\x1bOH"),
+  Key("home", "\x1b[1;5H", ctrl=True),
+]
+KEY_END = [
+  Key("end", "\x1b[F"),
+  Key("end", "\x1bOF"),
+  Key("end", "\x1b[1;5F", ctrl=True),
+]
+KEY_PG_LAST = [
+  Key("pg_last", "\x1b[5~"),
+  Key("pg_last", "\x1b[5;5~", ctrl=True),
+]
+KEY_PG_NEXT = [
+  Key("pg_next", "\x1b[6~"),
+  Key("pg_next", "\x1b[6;5~", ctrl=True),
+]
+
+KEY_F1 = [
+  Key("f1", "\x1bOP"),
+]
+KEY_F2 = [
+  Key("f2", "\x1bOQ"),
+]
+KEY_F3 = [
+  Key("f3", "\x1bOR"),
+]
+KEY_F4 = [
+  Key("f4", "\x1bOS"),
+]
+KEY_F5 = [
+  Key("f5", "\x1b[15~"),
+]
+KEY_F6 = [
+  Key("f6", "\x1b[17~"),
+]
+KEY_F7 = [
+  Key("f7", "\x1b[18~"),
+]
+KEY_F8 = [
+  Key("f8", "\x1b[19~"),
+]
+KEY_F9 = [
+  Key("f9", "\x1b[20~"),
+]
+KEY_F10 = [
+  Key("f10", "\x1b[21~"),
+]
+KEY_F11 = [
+  Key("f11", "\x1b[23~"),
+]
+KEY_F12 = [
+  Key("f12", "\x1b[24~"),
+]
