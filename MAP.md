@@ -1,0 +1,59 @@
+# tty.py
+- class TTY(TextIOBase)
+  - __init__(stdio)
+  - raw_mode(enable)
+  - cbreak_mode(enable)
+  - get_term()
+  - get_size(fail=(None, None))
+- tty_stdio(stdin, stdout) -> (ttyin, ttyout)
+- namedtruple TTYIO(ttyin, ttyout)
+
+# term.py
+- class Term()
+  - __init__(ttyio, name=ttyio.get_term())
+  - @property name
+  - @property colors
+  - @contextmanager alternate_buffer(reverse=False)
+  - set_alternate_buffer(enable)
+  - @contextmanager ...(reverse=False)
+  - set_...(enable)
+  - set_fg(color)
+  - set_bg(color)
+  - move_to(position)
+  - move_by(position)
+  - encode_grid(grid)
+  - parse_keys(string, special=False, special_process=True, handler=True)
+  - read_keys(special=False, special_process=True, handler=True)
+  - @key_handler(keys=None, special=False)
+  - @click_handler(buttons=None)
+  - @paste_handler()
+- get_capabilities()
+- map_colorspace(color, to)
+- namedtruple Coord(row, column)
+- namedtruple Size(rows, columns)
+- namedtruple Color(r, g, b)
+- namedtruple Capability(enable, disable)
+- namedtruple Key(name, value)
+- namedtruple Click(button, release, mods)
+
+# grid.py
+- class Grid()
+  - __init__(size)
+  - array rows
+    - array columns
+      - cell
+  - @property rows
+  - @prolerty columns
+  - draw_text(text, position)
+  - fill(cell)
+  - pad(offset_top, offset_bottom)
+  - merge(grid...) # mutates
+  - paste(grid...) # creates new grid
+  - difference(grid...)
+  - __add__(grid)
+  - __sub__(grid)
+- class Cell()
+  - __init__(char=None, color=None, style=None)
+  - char
+  - color
+  - style

@@ -1,6 +1,8 @@
 import ctypes
-from ctypes import wintypes
 import msvcrt
+import sys
+
+from ctypes import wintypes
 
 # Input bitmask flags
 PROCESSED_INPUT = 0x1  # System signal processing (^C)
@@ -16,7 +18,7 @@ VIRTUAL_TERMINAL_INPUT = 0x200  # Process input virtual terminal key sequences (
 PROCESSED_OUTPUT = 0x1  # Basic processing for BS, tab, bell, CR, LF
 WRAP_AT_EOL_OUTPUT = 0x2  # Line wrapping
 VIRTUAL_TERMINAL_PROCESSING = 0x4  # Process output virtual terminal sequences (win 10)
-NEWLINE_AUTO_RETURN = 0x8  # Setting flags disables automatic newline on flush (win 10)
+DISABLE_NEWLINE_AUTO_RETURN = 0x8  # Setting flags disables automatic newline on flush (win 10)
 
 def set_console_mode(fd, mode):
   def zero_check(result, _, args):
@@ -47,7 +49,7 @@ def get_console_mode(fd):
 
   kernel.GetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.LPDWORD)
   kernel.GetConsoleMode.errcheck = zero_check
-  kernel.GetConsoleMode(handle, ctypes.byref(mode))  # Mode passed by references
+  kernel.GetConsoleMode(handle, ctypes.byref(mode))  # Mode passed by reference
   return mode.value
 
 def vt_mode(enable=True, fdin=None, fdout=None):
@@ -61,10 +63,10 @@ def vt_mode(enable=True, fdin=None, fdout=None):
 
   if enable:
     input_mode |= VIRTUAL_TERMINAL_INPUT
-    output_mode |= VIRTUAL_TERMINAL_PROCESSING | NEWLINE_AUTO_RETURN
+    output_mode |= VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN
   else:
     input_mode &= ~VIRTUAL_TERMINAL_INPUT
-    output_mode &= ~(VIRTUAL_TERMINAL_PROCESSING | NEWLINE_AUTO_RETURN)
+    output_mode &= ~(VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN)
 
   set_console_mode(fdin, input_mode)
   set_console_mode(fdout, output_mode)
