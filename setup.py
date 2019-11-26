@@ -4,15 +4,13 @@ setup(
   name="termkit",
   version="0.1",
   packages=["termkit"],
-  # package_dir={"termkit": "src/termkit"}
-  package_data={
-    "termkit": ["terms/*.json"],
-  },
-  # zip_safe=True,
+  # package_dir={}
+  # package_data={},
+  zip_safe=True,
 
   # metadata to display on PyPI
-  author="Me",
-  author_email="me@example.com",
+  author="",
+  # author_email="",
   description="This is an Example Package",
   license="MIT",
   keywords="",

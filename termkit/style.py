@@ -6,6 +6,12 @@ from typing import Dict, Iterable, List, Tuple, Union
 
 from termkit import escape
 
+__all__ = [
+  "ID_MAP", "NAME_MAP", "GAMMA", "gamma_expansion", "gamma_compression", "Color",
+  "BOLD", "DIM", "REVERSE", "UNDERLINE", "ITALIC", "CONCEAL", "BLINK", "STRIKE", "CHARSET",
+  "HYPERLINK",
+]
+
 # predefine the internal collections so they are visible to Colors, as they contain instances of Color
 ID_MAP = []
 NAME_MAP = []
@@ -72,8 +78,8 @@ class Color():
       return self
 
     # search in iterable
-    sums = tuple((color, self.difference(color, gamma=gamma)) for color in colors)
-    return min(sums, key=lambda pair: pair[1])
+    sums = tuple((color, i, self.difference(color, gamma=gamma)) for i, color in enumerate(colors))
+    return min(sums, key=lambda pair: pair[2])
 
   def mix(self, other: "Color", gamma=GAMMA) -> "Color":
     """
@@ -111,7 +117,7 @@ CONCEAL =   0b0000100000
 BLINK =     0b0001000000
 STRIKE =    0b0010000000
 CHARSET =   0b0100000000
-HYPERLINK =   0b1000000000
+HYPERLINK = 0b1000000000
 
 if __name__ == "__main__":
   import doctest

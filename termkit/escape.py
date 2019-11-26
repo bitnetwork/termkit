@@ -17,6 +17,9 @@ Feature.__doc__ = """"""
 Key = namedtuple("Key", ["key", "value", "shift", "meta", "ctrl"], defaults=(False,) * 3)
 Key.__doc__ = """"""
 
+# https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+
+# Terminal function
 BELL = "\b"
 CLEAR = "\x1b[2J\x1b[H"  # Clear the screen then move the cursor to home position (0, 0) 
 SOFT_RESET = (
@@ -82,7 +85,6 @@ SCROLL_REGION = Feature("\x1b[{first};{second}r", "\x1b[r")
 
 # Text attributes
 # https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-
 BOLD = Feature("\x1b[1m", "\x1b[22m")
 DIM = Feature("\x1b[2m", "\x1b[22m")
 REVERSE = Feature("\x1b[7m", "\x1b[27m")
@@ -94,7 +96,7 @@ STRIKE = Feature("\x1b[9m", "\x1b[29m")
 CHARSET = Feature("\x1b(0\x0f", "\x1b(B\x0f")
 HYPERLINK = Feature("\x1b]8;;{link}\x1b\\", "\x1b]8;;\x1b\\")  # older terminals do not like this
 RESET_STYLE = "\x1b(B\x1b[m"
-CHARSET_TABLE = (
+CHARSET_TABLE = [
   ("j", u"\u2518"),
   ("k", u"\u2510"),
   ("l", u"\u250c"),
@@ -106,7 +108,7 @@ CHARSET_TABLE = (
   ("v", u"\u2534"),
   ("w", u"\u252c"),
   ("x", u"\u2502"),
-)
+]
 
 # Color
 # NOTE: 16_color takes the id starting at 0 unlike 8_color (subtract 8 from id)
@@ -384,21 +386,23 @@ COLORS = [
   ((238, 238, 238), "grey93"),  # 255
 ]
 
+# Mouse modes
 CLICK_MOUSE = "\x1b[?1000;1006h"  # sends only click events
 DRAG_MOUSE = "\x1b[?1002;1006h"  # sends only click & drag events
 MOVE_MOUSE = "\x1b[?1003;1006h"  # sends only mouse move events
 RESET_MOUSE = "\x1b[?1000;1002;1003;1006l"
 
+# Mouse keys
 KEY_MOUSE_PRESS = "\x1b[<{button};{row};{columns}m"
 KEY_MOUSE_RELEASE = "\x1b[<{button};{row};{columns}M"
 KEY_PASTE_BEGIN = "\x1b[200~"
 KEY_PASTE_END = "\x1b[201~"
 
+# Keys
 # xterm sends an escape sequence followed by a bitmask of modifiers pressed
 # \x1b[...;B... where B is a 1 + a bitmask of (LSB shift, meta, ctrl MSB)
 # otherwise if there is a lowercase letter, shift will capitalize it and meta will prepend \x1b to it
 # maybe implement SET_FULL later: https://sw.kovidgoyal.net/kitty/protocol-extensions.html#keyboard-handling
-
 KEYS = [
   Key("up", "\x1b[A"),
   Key("up", "\x1bOA"),

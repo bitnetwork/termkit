@@ -26,6 +26,8 @@ ISPEED = 4  # Input speed
 OSPEED = 5  # Input speed
 CC = 6  # Special characters
 
+# TODO: add context managers for all these tty modes
+
 def set_cooked(fdin: int = None, fdout: int = None):
   """
   Sets the tty attached to the file descriptor into cooked mode:
@@ -64,10 +66,12 @@ def set_cooked(fdin: int = None, fdout: int = None):
     mode_in = wincon.get_console_mode(fdin)
     mode_out = wincon.get_console_mode(fdout)
 
-    # Enable VT special input keys, enable signals, enable line mode
-    mode_in |= wincon.VIRTUAL_TERMINAL_INPUT | wincon.PROCESSED_INPUT | wincon.LINE_INPUT
+    # Enable signals, enable line mode
+    mode_in |= wincon.PROCESSED_INPUT | wincon.LINE_INPUT
     # Enable echo, enable edit mode
     mode_in |= wincon.ECHO_INPUT | wincon.QUICK_EDIT_MODE
+    # Disable VT special input keys
+    mode_in &= ~wincon.VIRTUAL_TERMINAL_INPUT
 
     # Enable core output processing, enable VT output sequences
     mode_out |= wincon.PROCESSED_OUTPUT | wincon.VIRTUAL_TERMINAL_PROCESSING

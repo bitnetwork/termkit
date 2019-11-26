@@ -4,6 +4,13 @@ import sys
 
 from ctypes import wintypes
 
+__all__ = [
+  "PROCESSED_INPUT", "LINE_INPUT", "ECHO_INPUT", "WINDOW_INPUT", "MOUSE_INPUT", "INSERT_MODE",
+  "QUICK_EDIT_MODE", "VIRTUAL_TERMINAL_INPUT", "PROCESSED_OUTPUT", "WRAP_AT_EOL_OUTPUT",
+  "VIRTUAL_TERMINAL_PROCESSING", "DISABLE_NEWLINE_AUTO_RETURN",
+  "set_console_mode", "get_console_mode", "vt_mode",
+]
+
 # Input bitmask flags
 PROCESSED_INPUT = 0x1  # System signal processing (^C)
 LINE_INPUT = 0x2  # Raw/cooked mode

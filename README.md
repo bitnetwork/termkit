@@ -1,2 +1,2 @@
 # termkit
-A pure python *curses-less library to interact with the terminal
+A pure python library to interact with the terminal.
