@@ -4,7 +4,7 @@ sys.path += os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
 import termkit as tk
 import termkit.term as tkterm
-from termkit import Color
+from termkit import Canvas, Cell, Color
 
 tk.tty.set_raw()  # set the tty to raw mode to receive input character by character
 term = tkterm.Terminal()  # attaches by default to sys.stdin and sys.stdout
@@ -24,6 +24,14 @@ try:
   term.write("\n")  # add a newline at the bottom
   term.move_to(column=0)  # ensure we're at column 0
   term.flush()
+
+  # grid = Canvas(8, 40)
+  # grid.fill(Cell("a", fg=Color(red=255), bg=Color(blue=15)))
+  # overlay = Canvas(4, 10)
+  # overlay.fill(Cell("", fg=Color(blue=255), bg=Color(0,0,1)))
+  # (overlay | grid).draw(term)
+  # term.reset_style()
+  # term.flush()
 
   while True:
     char = term.read()

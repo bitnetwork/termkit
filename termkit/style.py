@@ -4,7 +4,7 @@ import typing
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple, Union
 
-from termkit import escape
+# from termkit import escape
 
 __all__ = [
   "ID_MAP", "NAME_MAP", "GAMMA", "gamma_expansion", "gamma_compression", "Color",
@@ -75,11 +75,11 @@ class Color():
     """
     # short circuit
     if self in colors:
-      return self
+      return (self, 0)
 
     # search in iterable
-    sums = tuple((color, i, self.difference(color, gamma=gamma)) for i, color in enumerate(colors))
-    return min(sums, key=lambda pair: pair[2])
+    sums = tuple((color, i) for i, color in enumerate(colors))
+    return min(sums, key=lambda pair: self.difference(pair[0], gamma=gamma))
 
   def mix(self, other: "Color", gamma=GAMMA) -> "Color":
     """
@@ -103,9 +103,9 @@ class Color():
 
   __add__ = mix
 
-ID_MAP += [Color(*color[0]) for color in escape.COLORS]
+# ID_MAP += [Color(*color[0]) for color in escape.COLORS]
 
-NAME_MAP += [color[1] for color in escape.COLORS]
+# NAME_MAP += [color[1] for color in escape.COLORS]
 
 # text attributes
 BOLD =      0b0000000001

@@ -5,13 +5,15 @@ import os
 import sys
 
 from collections import namedtuple
-from typing import Union, Iterable
+from typing import Union, Iterable, List
 
 import parse
 
 from . import escape
-from .style import Color
 from . import style
+
+from .escape import Key
+from .style import Color
 
 __all__ = ["Terminal"]
 
@@ -28,7 +30,7 @@ class Terminal:
   Many methods have no simple way of detecting support for the TTY, so
   exceptions generally won't be raised if there is no support. Often times,
   many attributes are failsafe by design, in that they won't display on
-  unsupported devices. 
+  unsupported devices.
   """
   def __init__(
     self,
@@ -86,14 +88,14 @@ class Terminal:
       raise ValueError("Column cannot be negative (expected >=0, got {})".format(column))
     elif row is not None and row < 0:
       raise ValueError("Row cannot be negative (expected >=0, got {})".format(row))
-      
+
     if all((column, row)):
       self.stdout.write(escape.MOVE_CURSOR.format(row=row, column=column))
     elif column is not None:
       self.stdout.write(escape.MOVE_COLUMN.format(column=column))
     elif row is not None:
       self.stdout.write(escape.MOVE_ROW.format(row=row))
-    # else row is None and column is None: 
+    # else row is None and column is None:
       # pass
 
   def move_by(self, x: int = 0, y: int = 0):
@@ -124,7 +126,7 @@ class Terminal:
   def get_pos(self):
     raise NotImplementedError
     # TODO: use event system to catch event, will probably have to use async, or we can block the
-    # thread and buffer events until we receive REPORT_CURSOR 
+    # thread and buffer events until we receive REPORT_CURSOR
 
   # TODO: consider writing get_size which calls like move_to(999, 999) then calls get_pos()
   # TODO: figure out a way to either poll or receive updates for get_size
@@ -244,23 +246,24 @@ class Terminal:
           self.stdout.write(escape.FGCOLOR_8.format(color=color))
       elif self.colors >= 8:
         self.stdout.write(escape.FGCOLOR_8.format(color=color))
-      return
 
-    elif self.truecolor:
+    # truecolor
+    else:
+      # NOTE: this list operation may be expensive, constant such that self.colors doesn't change,
+      #       shared between the self.bg call. consider caching the result of this on the instance
+      #       level or any time self.colors is changed. also consider implementing this along side
+      #       with the local map for COLOR_PAIR described below
+      # NOTE: if we print the standard sequence, then the truecolor one, we retain backwards
+      #       compatibility
+      _, closest_id = color.closest_color(
+        [c[0] for c in escape.COLORS]
+      )
+      self.fg(closest_id)
       self.stdout.write(escape.FGCOLOR_TRUE.format(
         red=color.red,
         green=color.green,
         blue=color.blue
       ))
-
-    # translate colors from rgb to id pairs
-    else:
-      # NOTE: this list operation may be expensive, constant such that self.colors doesn't change,
-      # shared between the self.bg call. consider caching the result of this on the instance level
-      # or any time self.colors is changed. also consider implementing this along side with the
-      # local map for COLOR_PAIR described below
-      _, closest_id, _ = color.closest_color(style.ID_MAP[0:self.colors - 1])
-      self.fg(closest_id)
 
   def bg(self, color: Union[Color, int, None]):
     if color is None:
@@ -277,19 +280,18 @@ class Terminal:
           self.stdout.write(escape.BGCOLOR_8.format(color=color))
       elif self.colors >= 8:
         self.stdout.write(escape.BGCOLOR_8.format(color=color))
-      return
 
-    elif self.truecolor:
+    # truecolor
+    else:
+      _, closest_id = color.closest_color(
+        [c[0] for c in escape.COLORS]
+      )
+      self.bg(closest_id)
       self.stdout.write(escape.BGCOLOR_TRUE.format(
         red=color.red,
         green=color.green,
         blue=color.blue
       ))
-
-    # translate colors from rgb to id pairs
-    else:
-      _, closest_id, _ = color.closest_color(style.ID_MAP[0:self.colors - 1])
-      self.bg(closest_id)
 
   # TODO: consider implementing COLOR_PAIR and a local per-instance mutable ID_MAP
 
@@ -306,7 +308,7 @@ class Terminal:
   # Input handling
   # for stdin attached to a tty, we can poll characters faster than we can process it, so we may
   # be able to peek the buffer and sleep for an amount of time to see if anything has updated.
-  # the tty is almost guaranteed to send multi character sequences complete in a single flush, 
+  # the tty is almost guaranteed to send multi character sequences complete in a single flush,
   # which means that we won't have to process it character by character, and we can immediately
   # parse it into tokens.
   # the simplest way to do this is to peek the internal buffer for content, which will block the
@@ -324,6 +326,14 @@ class Terminal:
   def flush(self, *args, **kwargs):
     self.stdout.flush(*args, **kwargs)
 
+  def parse_keys(self, raw: str) -> List[Key]:
+    out = []
+    keys = sorted(escape.KEYS, key=len)
+    while len(raw) > 0:
+      for key in keys:
+        if raw.startswith(key):
+          out += key
+
   def collect_events(self):
     raise NotImplementedError
 
@@ -340,4 +350,4 @@ class Terminal:
 
   #   # Do logic with keys
   #   # event_array.append(func)
-  #   return func
+    #   return func

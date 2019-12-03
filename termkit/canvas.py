@@ -1,111 +1,60 @@
-from dataclasses import dataclass
+import copy
 import typing
-from typing import List, Tuple, Union
 
-from .style import Color, BOLD, DIM, REVERSE, UNDERLINE, ITALIC, CONCEAL, BLINK, STRIKE, CHARSET
+from dataclasses import dataclass
+from typing import List, Tuple, Union, Iterable
+
+from .style import Color, BOLD, DIM, REVERSE, UNDERLINE, ITALIC, CONCEAL, BLINK, STRIKE, CHARSET, HYPERLINK
+from .term import Terminal
 
 @dataclass(init=True, eq=True, order=False, frozen=True)
 class Cell():
   """
-  Cell contains the fields representing the character, foreground color, background color, the attributes,
-  and the attribute transparency, respectively.
+  Cell contains the fields representing the character, foreground color, background color and style
+  attributes, respectively.
 
   All fields have a sentinel value indicating transparency, and that in the case of layering another layer,
-  the layer should inherit the other's value. Otherwise, sentiel values are considered as empty values when
-  outputing the final canvas.
+  the layer should inherit the other's value. Otherwise, sentinel values are considered as empty values when
+  outputting the final canvas.
   """
 
-  # empty string is transparent, all else overwrites
-  char: str = ""
-  # background color by default
-  fg: Union[Color, None] = None
+  char: str = ""  # empty string is transparent, all else overwrites
+  fg: Union[Color, None] = None  # background color by default
   bg: Union[Color, None] = None
-  # mask of attributes, all disabled by default
-  # since there is no significant use case when inheriting attributes makes any kind of rational sense,
-  # it is statically implemented as taking only from the upper layer
-  fx: int = 0
+  fx: int = 0  # mask of attributes, all disabled by default
 
-  # def __hash__(self):
-    # return hash(self.char) + hash(self.fg) + hash(self.bg) + hash(self.fx) + hash(self.fxt)
-
-  # def __eq__(self, other):
-  #   if not isinstance(other, Cell):
-  #     return NotImplemented
-  #   return self.char == other.char \
-  #     and self.fg == other.fg \
-  #     and self.bg == other.bg \
-  #     and self.fx == other.fx
-
-  # def __repr__(self):
-  #   out = "<" + self.__class__.__name__
-  #   if self.char is not None:
-  #     out += f" char={repr(self.char)}"
-  #   if self.fg is not None:
-  #     out += f" fg={repr(self.fg)}"
-  #   if self.bg is not None:
-  #     out += f" bg={repr(self.bg)}"
-  #   if self.fx != 0:
-  #     out += f" fx={bin(self.fx)}"
-  #   if self.fxt < STRIKE << 1:  # highest bit + 1
-  #     out += f" fxt={bin(self.fxt)}"
-  #   return out + ">"
-
-  def __add__(self, other):
-    """Overwrite other over self, while inheriting transparency"""
-    # maybe we should flip this around the other way
-    """"""
-    if not isinstance(other, Cell):
+  def __or__(self, other):
+    if not isinstance(other, self.__class__):
       return NotImplemented
-    self.underlay(other)
+    char = self.char or other.char
+    fg = self.fg or other.fg
+    bg = self.bg or other.bg
+    # since there is no significant use case when inheriting attributes makes any kind of rational
+    # sense, it is statically implemented as taking only from the upper layer
+    fx = self.fx
+    return self.__class__(char, fg, bg, fx)
 
-  def __sub__(self, other):
-    """Compute differences in properties"""
-    if not isinstance(other, Cell):
-      return NotImplemented
-    self.damage(other)
+  def draw(self, term: Terminal):
+    # there is no character to print, so short circuit and skip it
+    if not self.char:
+      term.move_by(x=1)
+      return
 
-  def overlay(self, other: "Cell") -> "Cell":
-    """
-    Overwrite self with values from other, filling transparency with self.
+    term.fg(self.fg)  # None resets the color
+    term.bg(self.bg)
 
-    <observer>
-    <other>
-    <self>
-    
-    >>> Cell().overlay(fx=BOLD)
-    <Cell fx=0b1>
+    # term.bold(bool(self.fx & BOLD))
+    # term.dim(bool(self.fx & DIM))
+    # term.reverse(bool(self.fx & REVERSE))
+    # term.underline(bool(self.fx & UNDERLINE))
+    # term.italic(bool(self.fx & ITALIC))
+    # term.conceal(bool(self.fx & CONCEAL))
+    # term.blink(bool(self.fx & BLINK))
+    # term.strike(bool(self.fx & STRIKE))
+    # term.charset(bool(self.fx & CHARSET))
+    # term.hyperlink(bool(self.fx & HYPERLINK))
 
-    This should never be bold and that attribute is opaque
-    >>> Cell(fx=BOLD|ITALIC).overlay(fxt=~BOLD)
-    <Cell fx=ITALIC fxt=-0b10>
-    """
-    # prioritize other's values first
-    char = other.char or self.char
-    fg = other.fg or self.fg
-    bg = other.bg or self.bg
-
-    # if the fxt bit is set for that attribute, ingore the set value and assume transparent
-    # furthermore, if the transparent layer's fx is not transparent, use that value and clear the fxt bit
-    # alternatively, if the fxt bit is not set, assume that the set value is opaque
-    fx = other.fx & ~other.fxt  # don't recognise transparent bits as leigt
-    fx |= self.fx & other.fxt  # only use bits marked as transparent, and if possible, make them opaque
-    fxt = other.ftx
-    fxt &= ~(self.fxt & other.fxt)  # retain the bits that remained transparent
-    return Cell(char, fg, bg, fx, fxt)
-
-  def underlay(self, other: "Cell") -> "Cell":
-    """Overwrite other with values from self, filling transparency with other"""
-    return other.overlay(self)
-    # char = self.char or other.char
-    # fg = self.fg or other.fg
-    # bg = self.bg or other.bg
-    # # if the fxt bit is set for that attribute, ingore the set value and assume transparent
-    # fx = self.fx & ~self.fxt | other.fx
-    # fxt = self.fxt | other.fxt
-    # return Cell(char, fg, bg, fx, fxt)
-
-  def damage(self, other: "Cell"):
-    raise NotImplementedError()
+    term.write(self.char)
 
 class Canvas():
   __slots__ = ("canvas")
@@ -115,12 +64,25 @@ class Canvas():
     self.canvas = []
     self.resize(rows=rows, cols=cols)
 
+  def __iter__(self):
+    return [cell for row in self.canvas for cell in row]
+
+  def __or__(self, other):
+    if not isinstance(other, self.__class__):
+      return NotImplemented
+    rows = zip(copy.deepcopy(self.canvas), copy.deepcopy(other.canvas))
+    canvas = [[s_cell | o_cell for s_cell, o_cell in zip(s_row, o_row)] for s_row, o_row in rows]
+
+    new = self.__class__()
+    new.canvas = canvas
+    return new
+
   @property
-  def rows(self):
+  def rows(self) -> int:
     return len(self.canvas)
 
   @property
-  def cols(self):
+  def cols(self) -> int:
     if self.rows == 0:
       return 0
     return len(self.canvas[0])
@@ -129,7 +91,7 @@ class Canvas():
     if rows is not None:
       diff = rows - self.rows
       if diff > 0:
-        self.canvas.extend([fill] * (cols or self.cols))
+        self.canvas += [[fill] * (cols or self.cols)] * diff
       elif diff < 0:
         del self.canvas[diff:]  # delete the trailing rows
 
@@ -137,8 +99,21 @@ class Canvas():
       diff = cols - self.cols
       if diff > 0:
         for row in self.canvas:
-          row.extend([fill] * diff)
+          row += [fill] * diff
       elif diff < 0:
-        del row[diff:]  # delete the training columns
+        del row[diff:]  # delete the trailing columns
+
+  def draw(self, term: Terminal, mode="relative"):
+    for row in self.canvas:
+      for cell in row:
+        cell.draw(term)
+      term.move_by(y=1)
+      term.move_by(x=-self.cols)
+
+  def diff(self, other):
+    raise NotImplementedError
+
+  def fill(self, fill: Cell):
+    self.canvas = [[fill for _ in row] for row in self.canvas]
 
 
